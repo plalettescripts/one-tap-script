@@ -1,364 +1,188 @@
--- One Tap Script
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
+-- One Tap Script - Undetected
+local plr = game:GetService("Players")
+local run = game:GetService("RunService")
+local uis = game:GetService("UserInputService")
+local ws = game:GetService("Workspace")
+local lp = plr.LocalPlayer
+local cam = ws.CurrentCamera
+local mouse = lp:GetMouse()
 
-local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
-local Mouse = LocalPlayer:GetMouse()
+local cfg = {
+    aim = false,
+    esp = false,
+    tracers = false,
+    fly = false,
+    speed = false
+}
 
-local Settings = {}
-local Connections = {}
-local Drawings = {}
+local conn = {}
+local draws = {}
 
-local function ClearDrawings()
-    for _, d in pairs(Drawings) do pcall(function() d:Remove() end) end
-    Drawings = {}
+local function clr()
+    for _, d in pairs(draws) do pcall(function() d:Remove() end) end
+    draws = {}
+end
+
+local function dcon()
+    for _, c in pairs(conn) do pcall(function() c:Disconnect() end) end
+    conn = {}
+end
+
+local function geth(pl)
+    if pl and pl.Character then
+        return pl.Character:FindFirstChild("Head")
+    end
+    return nil
+end
+
+local function gethrp(pl)
+    if pl and pl.Character then
+        return pl.Character:FindFirstChild("HumanoidRootPart")
+    end
+    return nil
 end
 
 -- GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "OneTapGUI"
+gui.Name = math.random(1000000, 9999999)
 gui.Parent = game:GetService("CoreGui")
 
-local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 220, 0, 340)
-Main.Position = UDim2.new(0.82, 0, 0.25, 0)
-Main.BackgroundColor3 = Color3.fromRGB(30, 20, 30)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Draggable = true
-Main.Visible = true
-Main.Parent = gui
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
+local mf = Instance.new("Frame")
+mf.Size = UDim2.new(0, 200, 0, 280)
+mf.Position = UDim2.new(0.85, 0, 0.3, 0)
+mf.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+mf.BorderSizePixel = 0
+mf.Active = true
+mf.Draggable = true
+mf.Parent = gui
+Instance.new("UICorner", mf).CornerRadius = UDim.new(0, 6)
 
--- Border glow
-local Border = Instance.new("Frame")
-Border.Size = UDim2.new(1, 4, 1, 4)
-Border.Position = UDim2.new(0, -2, 0, -2)
-Border.BackgroundColor3 = Color3.fromRGB(255, 150, 180)
-Border.BorderSizePixel = 0
-Border.Parent = Main
-Instance.new("UICorner", Border).CornerRadius = UDim.new(0, 9)
+local ti = Instance.new("TextLabel")
+ti.Size = UDim2.new(1, 0, 0, 25)
+ti.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+ti.TextColor3 = Color3.fromRGB(255, 255, 255)
+ti.Text = "One Tap"
+ti.Font = Enum.Font.SourceSansBold
+ti.TextSize = 14
+ti.Parent = mf
 
-task.spawn(function()
-    local hue = 0.92
-    while gui and gui.Parent do
-        hue = hue + 0.003
-        if hue > 0.97 then hue = 0.92 end
-        pcall(function() Border.BackgroundColor3 = Color3.fromHSV(hue, 0.6, 1) end)
-        task.wait(0.03)
-    end
-end)
+local sf = Instance.new("ScrollingFrame")
+sf.Size = UDim2.new(1, -8, 1, -33)
+sf.Position = UDim2.new(0, 4, 0, 28)
+sf.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+sf.BorderSizePixel = 0
+sf.ScrollBarThickness = 3
+sf.CanvasSize = UDim2.new(0, 0, 0, 220)
+sf.Parent = mf
 
--- Minimized box
-local Mini = Instance.new("Frame")
-Mini.Size = UDim2.new(0, 200, 0, 45)
-Mini.Position = UDim2.new(0.5, -100, 0.02, 0)
-Mini.BackgroundColor3 = Color3.fromRGB(35, 20, 35)
-Mini.BorderSizePixel = 0
-Mini.Visible = false
-Mini.Active = true
-Mini.Draggable = true
-Mini.Parent = gui
-Instance.new("UICorner", Mini).CornerRadius = UDim.new(0, 8)
+local sl = Instance.new("UIListLayout")
+sl.Padding = UDim.new(0, 3)
+sl.FillDirection = Enum.FillDirection.Vertical
+sl.SortOrder = Enum.SortOrder.LayoutOrder
+sl.Parent = sf
 
-local SakuraFlower = Instance.new("TextLabel")
-SakuraFlower.Size = UDim2.new(0, 40, 1, 0)
-SakuraFlower.Position = UDim2.new(0, 5, 0, 0)
-SakuraFlower.BackgroundTransparency = 1
-SakuraFlower.TextColor3 = Color3.fromRGB(255, 160, 200)
-SakuraFlower.Text = "✿\n◉\n✿"
-SakuraFlower.Font = Enum.Font.SourceSansBold
-SakuraFlower.TextSize = 13
-SakuraFlower.TextXAlignment = Enum.TextXAlignment.Center
-SakuraFlower.TextYAlignment = Enum.TextYAlignment.Center
-SakuraFlower.Parent = Mini
+local function crt(name, cb)
+    local fr = Instance.new("Frame")
+    fr.Size = UDim2.new(1, -2, 0, 30)
+    fr.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
+    fr.Parent = sf
+    Instance.new("UICorner", fr).CornerRadius = UDim.new(0, 4)
 
-local MiniText = Instance.new("TextLabel")
-MiniText.Size = UDim2.new(0.7, 0, 1, 0)
-MiniText.Position = UDim2.new(0.25, 0, 0, 0)
-MiniText.BackgroundTransparency = 1
-MiniText.TextColor3 = Color3.fromRGB(255, 180, 200)
-MiniText.Text = "plalettescripts\nPress CTRL to open"
-MiniText.Font = Enum.Font.SourceSansBold
-MiniText.TextSize = 11
-MiniText.TextXAlignment = Enum.TextXAlignment.Left
-MiniText.Parent = Mini
+    local lb = Instance.new("TextLabel")
+    lb.Size = UDim2.new(0.55, 0, 1, 0)
+    lb.Position = UDim2.new(0.03, 0, 0, 0)
+    lb.BackgroundTransparency = 1
+    lb.TextColor3 = Color3.fromRGB(255, 255, 255)
+    lb.Text = name .. " : OFF"
+    lb.Font = Enum.Font.SourceSans
+    lb.TextSize = 12
+    lb.TextXAlignment = Enum.TextXAlignment.Left
+    lb.Parent = fr
 
--- CTRL Toggle
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
-    if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
-        Main.Visible = not Main.Visible
-        Mini.Visible = not Mini.Visible
-    end
-end)
-
--- Title
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundColor3 = Color3.fromRGB(40, 22, 38)
-Title.TextColor3 = Color3.fromRGB(255, 180, 210)
-Title.Text = "🌸 Sakura One Tap 🌸"
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 15
-Title.Parent = Main
-
-local Close = Instance.new("TextButton")
-Close.Size = UDim2.new(0, 26, 0, 22)
-Close.Position = UDim2.new(1, -30, 0, 4)
-Close.BackgroundColor3 = Color3.fromRGB(200, 50, 80)
-Close.TextColor3 = Color3.fromRGB(255, 255, 255)
-Close.Text = "X"
-Close.Font = Enum.Font.SourceSansBold
-Close.TextSize = 13
-Close.Parent = Main
-Close.MouseButton1Click:Connect(function()
-    ClearDrawings()
-    for _, c in pairs(Connections) do pcall(function() c:Disconnect() end) end
-    gui:Destroy()
-end)
-
--- Scroll
-local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size = UDim2.new(1, -10, 1, -38)
-Scroll.Position = UDim2.new(0, 5, 0, 33)
-Scroll.BackgroundColor3 = Color3.fromRGB(35, 22, 35)
-Scroll.BorderSizePixel = 0
-Scroll.ScrollBarThickness = 3
-Scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 150, 180)
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 620)
-Scroll.Parent = Main
-
-local List = Instance.new("UIListLayout")
-List.Padding = UDim.new(0, 3)
-List.FillDirection = Enum.FillDirection.Vertical
-List.SortOrder = Enum.SortOrder.LayoutOrder
-List.Parent = Scroll
-
--- Toggle function
-local function AddToggle(name, key)
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, -2, 0, 30)
-    Frame.BackgroundColor3 = Color3.fromRGB(42, 28, 42)
-    Frame.Parent = Scroll
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 4)
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(0.55, 0, 1, 0)
-    Label.Position = UDim2.new(0.03, 0, 0, 0)
-    Label.BackgroundTransparency = 1
-    Label.TextColor3 = Color3.fromRGB(240, 220, 240)
-    Label.Text = name .. " : OFF"
-    Label.Font = Enum.Font.SourceSansSemibold
-    Label.TextSize = 12
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Frame
-
-    local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(0, 38, 0, 20)
-    Btn.Position = UDim2.new(0.9, -38, 0, 5)
-    Btn.BackgroundColor3 = Color3.fromRGB(60, 40, 60)
-    Btn.Text = ""
-    Btn.Parent = Frame
-    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 10)
+    local bt = Instance.new("TextButton")
+    bt.Size = UDim2.new(0, 40, 0, 20)
+    bt.Position = UDim2.new(0.92, -40, 0, 5)
+    bt.BackgroundColor3 = Color3.fromRGB(55, 55, 70)
+    bt.Text = ""
+    bt.Parent = fr
+    Instance.new("UICorner", bt).CornerRadius = UDim.new(0, 10)
 
     local on = false
-    Btn.MouseButton1Click:Connect(function()
+    bt.MouseButton1Click:Connect(function()
         on = not on
-        Settings[key] = on
-        Label.Text = name .. " : " .. (on and "ON" or "OFF")
-        Btn.BackgroundColor3 = on and Color3.fromRGB(220, 120, 170) or Color3.fromRGB(60, 40, 60)
+        lb.Text = name .. " : " .. (on and "ON" or "OFF")
+        bt.BackgroundColor3 = on and Color3.fromRGB(0, 140, 0) or Color3.fromRGB(55, 55, 70)
+        cb(on)
     end)
 end
 
--- Slider function
-local function AddSlider(name, key, min, max, default)
-    Settings[key] = default
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, -2, 0, 48)
-    Frame.BackgroundColor3 = Color3.fromRGB(42, 28, 42)
-    Frame.Parent = Scroll
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 4)
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, 0, 0, 18)
-    Label.Position = UDim2.new(0.03, 0, 0, 3)
-    Label.BackgroundTransparency = 1
-    Label.TextColor3 = Color3.fromRGB(240, 220, 240)
-    Label.Text = name .. " : " .. tostring(default)
-    Label.Font = Enum.Font.SourceSans
-    Label.TextSize = 12
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Frame
-
-    local Input = Instance.new("TextBox")
-    Input.Size = UDim2.new(0.3, 0, 0, 22)
-    Input.Position = UDim2.new(0.35, 0, 0, 23)
-    Input.BackgroundColor3 = Color3.fromRGB(50, 35, 50)
-    Input.TextColor3 = Color3.fromRGB(255, 220, 240)
-    Input.Text = tostring(default)
-    Input.Font = Enum.Font.SourceSans
-    Input.TextSize = 12
-    Input.Parent = Frame
-    Instance.new("UICorner", Input).CornerRadius = UDim.new(0, 4)
-
-    Input.FocusLost:Connect(function()
-        local val = tonumber(Input.Text)
-        if val and val >= min and val <= max then
-            Settings[key] = val
-            Label.Text = name .. " : " .. tostring(val)
-        else
-            Input.Text = tostring(Settings[key])
-        end
-    end)
-end
-
--- Divider
-local function AddDivider(text)
-    local Div = Instance.new("Frame")
-    Div.Size = UDim2.new(1, -2, 0, 20)
-    Div.BackgroundColor3 = Color3.fromRGB(50, 30, 50)
-    Div.Parent = Scroll
-    Instance.new("UICorner", Div).CornerRadius = UDim.new(0, 4)
-    local Lbl = Instance.new("TextLabel")
-    Lbl.Size = UDim2.new(1, 0, 1, 0)
-    Lbl.BackgroundTransparency = 1
-    Lbl.TextColor3 = Color3.fromRGB(255, 180, 210)
-    Lbl.Text = "🌸 " .. text .. " 🌸"
-    Lbl.Font = Enum.Font.SourceSansBold
-    Lbl.TextSize = 11
-    Lbl.Parent = Div
-end
-
--- Build GUI
-AddDivider("Combat")
-AddToggle("Aimbot (Right Click)", "Aimbot")
-
-AddDivider("Visuals")
-AddToggle("ESP (Box + Name)", "ESP")
-AddToggle("Tracers", "Tracers")
-
-AddDivider("Movement")
-AddSlider("Walk Speed", "SpeedValue", 16, 150, 30)
-AddToggle("Speed Hack", "SpeedHack")
-AddSlider("Jump Power", "JumpValue", 50, 300, 50)
-AddToggle("Jump Hack", "JumpHack")
-AddSlider("Fly Speed", "FlySpeed", 20, 150, 50)
-AddToggle("Fly (WASD+Space/Shift)", "Fly")
-
-AddDivider("Credits")
-local CreditFrame = Instance.new("Frame")
-CreditFrame.Size = UDim2.new(1, -2, 0, 200)
-CreditFrame.BackgroundColor3 = Color3.fromRGB(42, 28, 42)
-CreditFrame.Parent = Scroll
-Instance.new("UICorner", CreditFrame).CornerRadius = UDim.new(0, 6)
-
-local CreditText = Instance.new("TextLabel")
-CreditText.Size = UDim2.new(1, -16, 1, -16)
-CreditText.Position = UDim2.new(0, 8, 0, 8)
-CreditText.BackgroundTransparency = 1
-CreditText.TextColor3 = Color3.fromRGB(240, 220, 240)
-CreditText.Text = [[
-🌸 Sakura One Tap 🌸
-
-Created by: plalettescripts
-
-GitHub: plalettescripts/one-tap-script
-
-Features:
-- Right-Click Aimbot
-- Box ESP with Names
-- Tracers
-- Fly (WASD+Space/Shift)
-- Speed Hack
-- Jump Hack
-
-Controls:
-Right Click = Aimbot
-WASD = Fly | Space = Up
-Shift = Down | CTRL = Minimize
-
-💖 Made by Plalette 💖
-]]
-CreditText.Font = Enum.Font.SourceSans
-CreditText.TextSize = 11
-CreditText.TextXAlignment = Enum.TextXAlignment.Left
-CreditText.TextYAlignment = Enum.TextYAlignment.Top
-CreditText.TextWrapped = true
-CreditText.Parent = CreditFrame
-
--- ==================== FEATURES ====================
+crt("Right-Click Aimbot", function(s) cfg.aim = s end)
+crt("Wallhack ESP", function(s) cfg.esp = s end)
+crt("Tracers", function(s) cfg.tracers = s end)
+crt("Fly", function(s) cfg.fly = s end)
+crt("Speed Hack", function(s) cfg.speed = s end)
 
 -- Aimbot
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton2 and Settings.Aimbot then
-        Connections.Aimbot = RunService.RenderStepped:Connect(function()
-            local closest = math.huge
-            local target = nil
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character then
-                    local head = p.Character:FindFirstChild("Head")
-                    if head then
-                        local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
-                        local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-                        if onScreen and dist < 350 and dist < closest then
-                            closest = dist
-                            target = p
+uis.InputBegan:Connect(function(inp, proc)
+    if proc then return end
+    if inp.UserInputType == Enum.UserInputType.MouseButton2 and cfg.aim then
+        conn.aim = run.RenderStepped:Connect(function()
+            local cl, tp = math.huge, nil
+            for _, p in ipairs(plr:GetPlayers()) do
+                if p ~= lp then
+                    local h = geth(p)
+                    if h then
+                        local ps, os = cam:WorldToViewportPoint(h.Position)
+                        local d = (Vector2.new(ps.X, ps.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+                        if os and d < 400 and d < cl then
+                            cl = d
+                            tp = p
                         end
                     end
                 end
             end
-            if target and target.Character and target.Character:FindFirstChild("Head") then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+            if tp then
+                local h = geth(tp)
+                if h then
+                    cam.CFrame = CFrame.new(cam.CFrame.Position, h.Position)
+                end
             end
         end)
     end
 end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        if Connections.Aimbot then Connections.Aimbot:Disconnect() Connections.Aimbot = nil end
+uis.InputEnded:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton2 then
+        if conn.aim then conn.aim:Disconnect() conn.aim = nil end
     end
 end)
 
--- ESP
+-- Wallhack ESP (Chams)
 task.spawn(function()
-    while task.wait(0.03) do
-        ClearDrawings()
-        if Settings.ESP then
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character then
-                    local head = p.Character:FindFirstChild("Head")
-                    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                    if head and hrp then
-                        local headPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
-                        local legPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
-                        if onScreen then
-                            local h = math.abs(headPos.Y - legPos.Y)
-                            local w = h / 2
-                            local box = Drawing.new("Square")
-                            box.Color = Color3.fromRGB(255, 150, 200)
-                            box.Thickness = 1.2
-                            box.Size = Vector2.new(w, h)
-                            box.Position = Vector2.new(headPos.X - w/2, headPos.Y)
-                            box.Filled = false
-                            box.Visible = true
-                            table.insert(Drawings, box)
-
-                            local name = Drawing.new("Text")
-                            name.Text = p.Name
-                            name.Color = Color3.fromRGB(255, 220, 240)
-                            name.Size = 13
-                            name.Position = Vector2.new(headPos.X, headPos.Y - 18)
-                            name.Center = true
-                            name.Visible = true
-                            table.insert(Drawings, name)
+    while task.wait(0.5) do
+        if cfg.esp then
+            for _, p in ipairs(plr:GetPlayers()) do
+                if p ~= lp and p.Character then
+                    for _, pr in ipairs(p.Character:GetChildren()) do
+                        if pr:IsA("BasePart") and pr.Transparency < 0.5 then
+                            pr.Material = Enum.Material.ForceField
                         end
                     end
+                    local hl = p.Character:FindFirstChild("wesp")
+                    if not hl then
+                        hl = Instance.new("Highlight")
+                        hl.Name = "wesp"
+                        hl.FillColor = Color3.fromRGB(255, 0, 0)
+                        hl.FillTransparency = 0.3
+                        hl.OutlineColor = Color3.fromRGB(255, 50, 50)
+                        hl.OutlineTransparency = 0
+                        hl.Parent = p.Character
+                    end
+                end
+            end
+        else
+            for _, p in ipairs(plr:GetPlayers()) do
+                if p.Character and p.Character:FindFirstChild("wesp") then
+                    p.Character.wesp:Destroy()
                 end
             end
         end
@@ -367,21 +191,22 @@ end)
 
 -- Tracers
 task.spawn(function()
-    while task.wait(0.025) do
-        if Settings.Tracers then
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character then
-                    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+    while task.wait(0.02) do
+        if cfg.tracers then
+            clr()
+            for _, p in ipairs(plr:GetPlayers()) do
+                if p ~= lp then
+                    local hrp = gethrp(p)
                     if hrp then
-                        local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                        if onScreen then
-                            local line = Drawing.new("Line")
-                            line.Color = Color3.fromRGB(255, 180, 220)
-                            line.Thickness = 0.7
-                            line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
-                            line.To = Vector2.new(pos.X, pos.Y)
-                            line.Visible = true
-                            table.insert(Drawings, line)
+                        local ps, os = cam:WorldToViewportPoint(hrp.Position)
+                        if os then
+                            local ln = Drawing.new("Line")
+                            ln.Color = Color3.fromRGB(255, 255, 255)
+                            ln.Thickness = 0.7
+                            ln.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y)
+                            ln.To = Vector2.new(ps.X, ps.Y)
+                            ln.Visible = true
+                            table.insert(draws, ln)
                         end
                     end
                 end
@@ -390,48 +215,36 @@ task.spawn(function()
     end
 end)
 
--- Speed Hack
-RunService.Stepped:Connect(function()
-    if Settings.SpeedHack and LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = Settings.SpeedValue end
-    end
-end)
-
--- Jump Hack
-RunService.Stepped:Connect(function()
-    if Settings.JumpHack and LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.JumpPower = Settings.JumpValue end
-    end
-end)
-
--- Fly
+-- Fly (no lag - uses BodyVelocity)
 task.spawn(function()
     while task.wait() do
-        if Settings.Fly and LocalPlayer.Character then
-            local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if cfg.fly and lp.Character then
+            local hrp = lp.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                local gyro = hrp:FindFirstChild("FlyGyro") or Instance.new("BodyGyro", hrp)
-                local vel = hrp:FindFirstChild("FlyVel") or Instance.new("BodyVelocity", hrp)
-                gyro.Name = "FlyGyro"
-                gyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-                gyro.CFrame = Camera.CFrame
-                vel.Name = "FlyVel"
-                vel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-
-                local speed = Settings.FlySpeed or 50
-                local move = Vector3.zero
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then move += Camera.CFrame.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then move -= Camera.CFrame.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.A) then move -= Camera.CFrame.RightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.D) then move += Camera.CFrame.RightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move += Vector3.new(0, 1, 0) end
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then move -= Vector3.new(0, 1, 0) end
-                vel.Velocity = move * speed
+                local bg = hrp:FindFirstChild("bgFly") or Instance.new("BodyGyro", hrp)
+                local bv = hrp:FindFirstChild("bvFly") or Instance.new("BodyVelocity", hrp)
+                bg.Name = "bgFly"
+                bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+                bg.CFrame = cam.CFrame
+                bv.Name = "bvFly"
+                bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                local vel = Vector3.zero
+                if uis:IsKeyDown(Enum.KeyCode.W) then vel += cam.CFrame.LookVector * 50 end
+                if uis:IsKeyDown(Enum.KeyCode.S) then vel -= cam.CFrame.LookVector * 50 end
+                if uis:IsKeyDown(Enum.KeyCode.A) then vel -= cam.CFrame.RightVector * 50 end
+                if uis:IsKeyDown(Enum.KeyCode.D) then vel += cam.CFrame.RightVector * 50 end
+                if uis:IsKeyDown(Enum.KeyCode.Space) then vel += Vector3.new(0, 50, 0) end
+                if uis:IsKeyDown(Enum.KeyCode.LeftShift) then vel -= Vector3.new(0, 50, 0) end
+                bv.Velocity = vel
             end
         end
     end
 end)
 
-print("🌸 Sakura One Tap Loaded! 🌸")
+-- Speed Hack
+run.Stepped:Connect(function()
+    if cfg.speed and lp.Character then
+        local hum = lp.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = 32 end
+    end
+end)
