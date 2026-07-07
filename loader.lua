@@ -1,9 +1,8 @@
--- One Tap - Sakura Edition
+-- One Tap - Sakura Edition v2
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
@@ -14,6 +13,7 @@ local Settings = {
     ESP = false,
     Tracers = false,
     Fly = false,
+    FlySpeed = 50,
     SpeedHack = false,
     SpeedValue = 30,
     JumpHack = false,
@@ -21,13 +21,17 @@ local Settings = {
 }
 
 local Connections = {}
-local ESPDrawings = {}
+local BoxDrawings = {}
+local TracerDrawings = {}
 
-local function ClearDrawings()
-    for _, d in pairs(ESPDrawings) do
-        pcall(function() d:Remove() end)
-    end
-    ESPDrawings = {}
+local function ClearBoxes()
+    for _, d in pairs(BoxDrawings) do pcall(function() d:Remove() end) end
+    BoxDrawings = {}
+end
+
+local function ClearTracers()
+    for _, d in pairs(TracerDrawings) do pcall(function() d:Remove() end) end
+    TracerDrawings = {}
 end
 
 -- ==================== SAKURA GUI ====================
@@ -35,10 +39,9 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SakuraOneTap"
 ScreenGui.Parent = game:GetService("CoreGui")
 
--- Main Frame with sakura pink theme
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 280, 0, 350)
-MainFrame.Position = UDim2.new(0.8, 0, 0.25, 0)
+MainFrame.Size = UDim2.new(0, 290, 0, 380)
+MainFrame.Position = UDim2.new(0.78, 0, 0.22, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 20, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -47,7 +50,6 @@ MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
--- Decorative sakura border
 local Border = Instance.new("Frame")
 Border.Size = UDim2.new(1, 4, 1, 4)
 Border.Position = UDim2.new(0, -2, 0, -2)
@@ -57,24 +59,21 @@ Border.ZIndex = 0
 Border.Parent = MainFrame
 Instance.new("UICorner", Border).CornerRadius = UDim.new(0, 11)
 
--- Animated sakura border glow
 task.spawn(function()
     local hue = 0.92
     while ScreenGui and ScreenGui.Parent do
         hue = hue + 0.002
         if hue > 0.97 then hue = 0.92 end
-        pcall(function()
-            Border.BackgroundColor3 = Color3.fromHSV(hue, 0.6, 1)
-        end)
+        pcall(function() Border.BackgroundColor3 = Color3.fromHSV(hue, 0.6, 1) end)
         task.wait(0.03)
     end
 end)
 
--- Minimized sakura button
+-- Minimized Sakura Flower Box
 local MiniFrame = Instance.new("Frame")
-MiniFrame.Size = UDim2.new(0, 180, 0, 35)
-MiniFrame.Position = UDim2.new(0.5, -90, 0.02, 0)
-MiniFrame.BackgroundColor3 = Color3.fromRGB(40, 25, 40)
+MiniFrame.Size = UDim2.new(0, 200, 0, 50)
+MiniFrame.Position = UDim2.new(0.5, -100, 0.02, 0)
+MiniFrame.BackgroundColor3 = Color3.fromRGB(35, 20, 35)
 MiniFrame.BorderSizePixel = 0
 MiniFrame.Visible = false
 MiniFrame.Active = true
@@ -90,13 +89,32 @@ MiniBorder.BorderSizePixel = 0
 MiniBorder.Parent = MiniFrame
 Instance.new("UICorner", MiniBorder).CornerRadius = UDim.new(0, 9)
 
+-- Custom Sakura Flower design in minimized box
+local SakuraArt = Instance.new("TextLabel")
+SakuraArt.Size = UDim2.new(0, 45, 0, 45)
+SakuraArt.Position = UDim2.new(0, 5, 0, 2)
+SakuraArt.BackgroundTransparency = 1
+SakuraArt.TextColor3 = Color3.fromRGB(255, 160, 200)
+SakuraArt.Text = [[
+   ✿
+ ✿ ◉ ✿
+   ✿
+]]
+SakuraArt.Font = Enum.Font.SourceSans
+SakuraArt.TextSize = 11
+SakuraArt.TextXAlignment = Enum.TextXAlignment.Center
+SakuraArt.TextYAlignment = Enum.TextYAlignment.Center
+SakuraArt.Parent = MiniFrame
+
 local MiniLabel = Instance.new("TextLabel")
-MiniLabel.Size = UDim2.new(1, 0, 1, 0)
+MiniLabel.Size = UDim2.new(0.7, 0, 1, 0)
+MiniLabel.Position = UDim2.new(0.28, 0, 0, 0)
 MiniLabel.BackgroundTransparency = 1
 MiniLabel.TextColor3 = Color3.fromRGB(255, 180, 200)
-MiniLabel.Text = "🌸 Sakura - Press CTRL 🌸"
+MiniLabel.Text = "plalettescripts\nPress CTRL to open"
 MiniLabel.Font = Enum.Font.SourceSansBold
-MiniLabel.TextSize = 13
+MiniLabel.TextSize = 11
+MiniLabel.TextXAlignment = Enum.TextXAlignment.Left
 MiniLabel.Parent = MiniFrame
 
 -- CTRL Toggle
@@ -108,7 +126,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
     end
 end)
 
--- Title Bar with sakura flowers
+-- Title Bar
 local TitleBar = Instance.new("Frame")
 TitleBar.Size = UDim2.new(1, 0, 0, 38)
 TitleBar.BackgroundColor3 = Color3.fromRGB(40, 22, 38)
@@ -116,39 +134,17 @@ TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
 Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
 
--- Decorative sakura petals in title
-local PetalLeft = Instance.new("TextLabel")
-PetalLeft.Size = UDim2.new(0, 20, 0, 20)
-PetalLeft.Position = UDim2.new(0.01, 0, 0, 9)
-PetalLeft.BackgroundTransparency = 1
-PetalLeft.TextColor3 = Color3.fromRGB(255, 180, 200)
-PetalLeft.Text = "🌸"
-PetalLeft.Font = Enum.Font.SourceSans
-PetalLeft.TextSize = 16
-PetalLeft.Parent = TitleBar
-
 local TitleText = Instance.new("TextLabel")
-TitleText.Size = UDim2.new(0.6, 0, 1, 0)
-TitleText.Position = UDim2.new(0.08, 0, 0, 0)
+TitleText.Size = UDim2.new(0.7, 0, 1, 0)
+TitleText.Position = UDim2.new(0.06, 0, 0, 0)
 TitleText.BackgroundTransparency = 1
 TitleText.TextColor3 = Color3.fromRGB(255, 180, 210)
-TitleText.Text = "Sakura One Tap"
+TitleText.Text = "🌸 Sakura One Tap 🌸"
 TitleText.Font = Enum.Font.SourceSansBold
 TitleText.TextSize = 18
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Parent = TitleBar
 
-local PetalRight = Instance.new("TextLabel")
-PetalRight.Size = UDim2.new(0, 20, 0, 20)
-PetalRight.Position = UDim2.new(0.65, 0, 0, 9)
-PetalRight.BackgroundTransparency = 1
-PetalRight.TextColor3 = Color3.fromRGB(255, 180, 200)
-PetalRight.Text = "🌸"
-PetalRight.Font = Enum.Font.SourceSans
-PetalRight.TextSize = 16
-PetalRight.Parent = TitleBar
-
--- Close Button
 local CloseButton = Instance.new("TextButton")
 CloseButton.Size = UDim2.new(0, 28, 0, 24)
 CloseButton.Position = UDim2.new(1, -34, 0, 7)
@@ -160,141 +156,278 @@ CloseButton.TextSize = 14
 CloseButton.Parent = TitleBar
 Instance.new("UICorner", CloseButton).CornerRadius = UDim.new(0, 6)
 CloseButton.MouseButton1Click:Connect(function()
-    ClearDrawings()
+    ClearBoxes()
+    ClearTracers()
     for _, c in pairs(Connections) do pcall(function() c:Disconnect() end) end
     ScreenGui:Destroy()
 end)
 
--- Content Scrolling Frame
-local ContentScroll = Instance.new("ScrollingFrame")
-ContentScroll.Size = UDim2.new(1, -10, 1, -45)
-ContentScroll.Position = UDim2.new(0, 5, 0, 42)
-ContentScroll.BackgroundColor3 = Color3.fromRGB(35, 22, 35)
-ContentScroll.BorderSizePixel = 0
-ContentScroll.ScrollBarThickness = 4
-ContentScroll.ScrollBarImageColor3 = Color3.fromRGB(255, 150, 180)
-ContentScroll.CanvasSize = UDim2.new(0, 0, 0, 600)
-ContentScroll.Parent = MainFrame
+-- Tab System
+local TabContainer = Instance.new("Frame")
+TabContainer.Size = UDim2.new(0, 80, 1, -43)
+TabContainer.Position = UDim2.new(0, 3, 0, 41)
+TabContainer.BackgroundColor3 = Color3.fromRGB(25, 16, 28)
+TabContainer.BorderSizePixel = 0
+TabContainer.Parent = MainFrame
+Instance.new("UICorner", TabContainer).CornerRadius = UDim.new(0, 6)
 
-local ContentList = Instance.new("UIListLayout")
-ContentList.Padding = UDim.new(0, 4)
-ContentList.FillDirection = Enum.FillDirection.Vertical
-ContentList.SortOrder = Enum.SortOrder.LayoutOrder
-ContentList.Parent = ContentScroll
+local TabList = Instance.new("UIListLayout")
+TabList.Padding = UDim.new(0, 2)
+TabList.FillDirection = Enum.FillDirection.Vertical
+TabList.SortOrder = Enum.SortOrder.LayoutOrder
+TabList.Parent = TabContainer
 
--- Sakura Divider Function
-local function CreateDivider(text)
-    local Div = Instance.new("Frame")
-    Div.Size = UDim2.new(1, -4, 0, 24)
-    Div.BackgroundColor3 = Color3.fromRGB(50, 30, 50)
-    Div.Parent = ContentScroll
-    Instance.new("UICorner", Div).CornerRadius = UDim.new(0, 4)
-    
-    local DivLabel = Instance.new("TextLabel")
-    DivLabel.Size = UDim2.new(1, 0, 1, 0)
-    DivLabel.BackgroundTransparency = 1
-    DivLabel.TextColor3 = Color3.fromRGB(255, 180, 210)
-    DivLabel.Text = "🌸 " .. text .. " 🌸"
-    DivLabel.Font = Enum.Font.SourceSansBold
-    DivLabel.TextSize = 12
-    DivLabel.Parent = Div
-end
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, -90, 1, -47)
+ContentFrame.Position = UDim2.new(0, 86, 0, 41)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(35, 22, 35)
+ContentFrame.BorderSizePixel = 0
+ContentFrame.Parent = MainFrame
+Instance.new("UICorner", ContentFrame).CornerRadius = UDim.new(0, 6)
 
--- Toggle Function
-local function CreateToggle(name, settingKey)
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, -4, 0, 32)
-    Frame.BackgroundColor3 = Color3.fromRGB(42, 28, 42)
-    Frame.Parent = ContentScroll
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 5)
+local function CreateTab(name, icon)
+    local TabBtn = Instance.new("TextButton")
+    TabBtn.Size = UDim2.new(1, -6, 0, 28)
+    TabBtn.Position = UDim2.new(0, 3, 0, 0)
+    TabBtn.BackgroundColor3 = Color3.fromRGB(40, 28, 42)
+    TabBtn.TextColor3 = Color3.fromRGB(200, 180, 200)
+    TabBtn.Text = icon .. " " .. name
+    TabBtn.Font = Enum.Font.SourceSansSemibold
+    TabBtn.TextSize = 11
+    TabBtn.TextXAlignment = Enum.TextXAlignment.Left
+    TabBtn.Parent = TabContainer
+    Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 4)
 
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(0.58, 0, 1, 0)
-    Label.Position = UDim2.new(0.03, 0, 0, 0)
-    Label.BackgroundTransparency = 1
-    Label.TextColor3 = Color3.fromRGB(240, 220, 240)
-    Label.Text = name .. " : OFF"
-    Label.Font = Enum.Font.SourceSansSemibold
-    Label.TextSize = 12
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Frame
+    local Content = Instance.new("ScrollingFrame")
+    Content.Size = UDim2.new(1, -8, 1, -8)
+    Content.Position = UDim2.new(0, 4, 0, 4)
+    Content.BackgroundTransparency = 1
+    Content.BorderSizePixel = 0
+    Content.ScrollBarThickness = 3
+    Content.ScrollBarImageColor3 = Color3.fromRGB(255, 150, 180)
+    Content.CanvasSize = UDim2.new(0, 0, 0, 500)
+    Content.Visible = false
+    Content.Parent = ContentFrame
 
-    local Switch = Instance.new("TextButton")
-    Switch.Size = UDim2.new(0, 42, 0, 22)
-    Switch.Position = UDim2.new(0.92, -42, 0, 5)
-    Switch.BackgroundColor3 = Color3.fromRGB(60, 40, 60)
-    Switch.Text = ""
-    Switch.Parent = Frame
-    Instance.new("UICorner", Switch).CornerRadius = UDim.new(0, 11)
+    local ContentList = Instance.new("UIListLayout")
+    ContentList.Padding = UDim.new(0, 3)
+    ContentList.FillDirection = Enum.FillDirection.Vertical
+    ContentList.SortOrder = Enum.SortOrder.LayoutOrder
+    ContentList.Parent = Content
 
-    local enabled = false
-    Switch.MouseButton1Click:Connect(function()
-        enabled = not enabled
-        Settings[settingKey] = enabled
-        Label.Text = name .. " : " .. (enabled and "ON" or "OFF")
-        Switch.BackgroundColor3 = enabled and Color3.fromRGB(220, 120, 170) or Color3.fromRGB(60, 40, 60)
-        Label.TextColor3 = enabled and Color3.fromRGB(255, 200, 220) or Color3.fromRGB(240, 220, 240)
-    end)
-end
-
--- Slider Function
-local function CreateSlider(name, settingKey, min, max, default)
-    Settings[settingKey] = default
-    
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, -4, 0, 48)
-    Frame.BackgroundColor3 = Color3.fromRGB(42, 28, 42)
-    Frame.Parent = ContentScroll
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 5)
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, 0, 0, 18)
-    Label.Position = UDim2.new(0.03, 0, 0, 3)
-    Label.BackgroundTransparency = 1
-    Label.TextColor3 = Color3.fromRGB(240, 220, 240)
-    Label.Text = name .. " : " .. tostring(default)
-    Label.Font = Enum.Font.SourceSans
-    Label.TextSize = 12
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Frame
-
-    local Input = Instance.new("TextBox")
-    Input.Size = UDim2.new(0.3, 0, 0, 22)
-    Input.Position = UDim2.new(0.35, 0, 0, 23)
-    Input.BackgroundColor3 = Color3.fromRGB(50, 35, 50)
-    Input.TextColor3 = Color3.fromRGB(255, 220, 240)
-    Input.Text = tostring(default)
-    Input.Font = Enum.Font.SourceSans
-    Input.TextSize = 12
-    Input.PlaceholderText = min .. "-" .. max
-    Input.Parent = Frame
-    Instance.new("UICorner", Input).CornerRadius = UDim.new(0, 4)
-
-    Input.FocusLost:Connect(function()
-        local val = tonumber(Input.Text)
-        if val and val >= min and val <= max then
-            Settings[settingKey] = val
-            Label.Text = name .. " : " .. tostring(val)
-        else
-            Input.Text = tostring(Settings[settingKey])
+    TabBtn.MouseButton1Click:Connect(function()
+        for _, child in ipairs(ContentFrame:GetChildren()) do
+            if child:IsA("ScrollingFrame") then child.Visible = false end
         end
+        for _, child in ipairs(TabContainer:GetChildren()) do
+            if child:IsA("TextButton") then
+                child.BackgroundColor3 = Color3.fromRGB(40, 28, 42)
+                child.TextColor3 = Color3.fromRGB(200, 180, 200)
+            end
+        end
+        Content.Visible = true
+        TabBtn.BackgroundColor3 = Color3.fromRGB(220, 120, 170)
+        TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     end)
+
+    local hasVisible = false
+    for _, child in ipairs(ContentFrame:GetChildren()) do
+        if child:IsA("ScrollingFrame") and child.Visible then hasVisible = true end
+    end
+    if not hasVisible then
+        Content.Visible = true
+        TabBtn.BackgroundColor3 = Color3.fromRGB(220, 120, 170)
+        TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+
+    local tab = {}
+
+    function tab:CreateToggle(name, settingKey)
+        local Frame = Instance.new("Frame")
+        Frame.Size = UDim2.new(1, -2, 0, 32)
+        Frame.BackgroundColor3 = Color3.fromRGB(42, 28, 42)
+        Frame.Parent = Content
+        Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 5)
+
+        local Label = Instance.new("TextLabel")
+        Label.Size = UDim2.new(0.55, 0, 1, 0)
+        Label.Position = UDim2.new(0.03, 0, 0, 0)
+        Label.BackgroundTransparency = 1
+        Label.TextColor3 = Color3.fromRGB(240, 220, 240)
+        Label.Text = name .. " : OFF"
+        Label.Font = Enum.Font.SourceSansSemibold
+        Label.TextSize = 12
+        Label.TextXAlignment = Enum.TextXAlignment.Left
+        Label.Parent = Frame
+
+        local Switch = Instance.new("TextButton")
+        Switch.Size = UDim2.new(0, 40, 0, 20)
+        Switch.Position = UDim2.new(0.92, -40, 0, 6)
+        Switch.BackgroundColor3 = Color3.fromRGB(60, 40, 60)
+        Switch.Text = ""
+        Switch.Parent = Frame
+        Instance.new("UICorner", Switch).CornerRadius = UDim.new(0, 10)
+
+        local enabled = false
+        Switch.MouseButton1Click:Connect(function()
+            enabled = not enabled
+            Settings[settingKey] = enabled
+            Label.Text = name .. " : " .. (enabled and "ON" or "OFF")
+            Switch.BackgroundColor3 = enabled and Color3.fromRGB(220, 120, 170) or Color3.fromRGB(60, 40, 60)
+            Label.TextColor3 = enabled and Color3.fromRGB(255, 200, 220) or Color3.fromRGB(240, 220, 240)
+        end)
+    end
+
+    function tab:CreateSlider(name, settingKey, min, max, default)
+        Settings[settingKey] = default
+        local Frame = Instance.new("Frame")
+        Frame.Size = UDim2.new(1, -2, 0, 48)
+        Frame.BackgroundColor3 = Color3.fromRGB(42, 28, 42)
+        Frame.Parent = Content
+        Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 5)
+
+        local Label = Instance.new("TextLabel")
+        Label.Size = UDim2.new(1, 0, 0, 18)
+        Label.Position = UDim2.new(0.03, 0, 0, 3)
+        Label.BackgroundTransparency = 1
+        Label.TextColor3 = Color3.fromRGB(240, 220, 240)
+        Label.Text = name .. " : " .. tostring(default)
+        Label.Font = Enum.Font.SourceSans
+        Label.TextSize = 12
+        Label.TextXAlignment = Enum.TextXAlignment.Left
+        Label.Parent = Frame
+
+        local Input = Instance.new("TextBox")
+        Input.Size = UDim2.new(0.3, 0, 0, 22)
+        Input.Position = UDim2.new(0.35, 0, 0, 23)
+        Input.BackgroundColor3 = Color3.fromRGB(50, 35, 50)
+        Input.TextColor3 = Color3.fromRGB(255, 220, 240)
+        Input.Text = tostring(default)
+        Input.Font = Enum.Font.SourceSans
+        Input.TextSize = 12
+        Input.Parent = Frame
+        Instance.new("UICorner", Input).CornerRadius = UDim.new(0, 4)
+
+        Input.FocusLost:Connect(function()
+            local val = tonumber(Input.Text)
+            if val and val >= min and val <= max then
+                Settings[settingKey] = val
+                Label.Text = name .. " : " .. tostring(val)
+            else
+                Input.Text = tostring(Settings[settingKey])
+            end
+        end)
+    end
+
+    function tab:CreateDivider(text)
+        local Div = Instance.new("Frame")
+        Div.Size = UDim2.new(1, -2, 0, 22)
+        Div.BackgroundColor3 = Color3.fromRGB(50, 30, 50)
+        Div.Parent = Content
+        Instance.new("UICorner", Div).CornerRadius = UDim.new(0, 4)
+        local DivLabel = Instance.new("TextLabel")
+        DivLabel.Size = UDim2.new(1, 0, 1, 0)
+        DivLabel.BackgroundTransparency = 1
+        DivLabel.TextColor3 = Color3.fromRGB(255, 180, 210)
+        DivLabel.Text = "🌸 " .. text .. " 🌸"
+        DivLabel.Font = Enum.Font.SourceSansBold
+        DivLabel.TextSize = 11
+        DivLabel.Parent = Div
+    end
+
+    return tab
 end
 
--- Build GUI Sections
-CreateDivider("🎯 Combat")
-CreateToggle("Aimbot (Right Click)", "Aimbot")
+-- Create Tabs
+local CombatTab = CreateTab("Combat", "🎯")
+local VisualsTab = CreateTab("Visuals", "👁")
+local MovementTab = CreateTab("Move", "🏃")
+local CreditsTab = CreateTab("Credits", "💖")
 
-CreateDivider("👁️ Visuals")
-CreateToggle("ESP (Box + Name)", "ESP")
-CreateToggle("Tracers", "Tracers")
+-- Combat Tab
+CombatTab.CreateDivider("Aimbot")
+CombatTab.CreateToggle("Right-Click Aimbot", "Aimbot")
 
-CreateDivider("🏃 Movement")
-CreateSlider("Speed", "SpeedValue", 16, 100, 30)
-CreateToggle("Speed Hack", "SpeedHack")
-CreateSlider("Jump Power", "JumpValue", 50, 200, 50)
-CreateToggle("Jump Hack", "JumpHack")
-CreateToggle("Fly (WASD + Space/Shift)", "Fly")
+-- Visuals Tab
+VisualsTab.CreateDivider("ESP")
+VisualsTab.CreateToggle("Player ESP (Box+Name)", "ESP")
+VisualsTab.CreateToggle("Tracers", "Tracers")
+
+-- Movement Tab
+MovementTab.CreateDivider("Speed")
+MovementTab.CreateSlider("Walk Speed", "SpeedValue", 16, 150, 30)
+MovementTab.CreateToggle("Speed Hack", "SpeedHack")
+
+MovementTab.CreateDivider("Jump")
+MovementTab.CreateSlider("Jump Power", "JumpValue", 50, 300, 50)
+MovementTab.CreateToggle("Jump Hack", "JumpHack")
+
+MovementTab.CreateDivider("Fly")
+MovementTab.CreateSlider("Fly Speed", "FlySpeed", 20, 150, 50)
+MovementTab.CreateToggle("Fly (WASD+Space/Shift)", "Fly")
+
+-- Credits Tab
+local function BuildCredits(content)
+    for _, child in ipairs(content:GetChildren()) do
+        if child:IsA("Frame") and child.Name ~= "UIListLayout" then child:Destroy() end
+    end
+
+    local CreditFrame = Instance.new("Frame")
+    CreditFrame.Size = UDim2.new(1, -2, 0, 360)
+    CreditFrame.BackgroundColor3 = Color3.fromRGB(42, 28, 42)
+    CreditFrame.Parent = content
+    Instance.new("UICorner", CreditFrame).CornerRadius = UDim.new(0, 6)
+
+    local CreditText = Instance.new("TextLabel")
+    CreditText.Size = UDim2.new(1, -20, 1, -20)
+    CreditText.Position = UDim2.new(0, 10, 0, 10)
+    CreditText.BackgroundTransparency = 1
+    CreditText.TextColor3 = Color3.fromRGB(240, 220, 240)
+    CreditText.Text = [[
+╔══════════════════════════╗
+     🌸 SAKURA ONE TAP 🌸
+╚══════════════════════════╝
+
+    👤 Created by: plalettescripts
+
+    📁 GitHub:
+       plalettescripts/one-tap-script
+
+    🌸 Features:
+       • Right-Click Aimbot
+       • Box ESP with Distance
+       • Tracers
+       • Fly (WASD + Space/Shift)
+       • Speed Hack
+       • Jump Hack
+       • Sakura Themed GUI
+       • CTRL Minimize
+
+    🎮 Controls:
+       Right Click = Aimbot Lock
+       WASD = Fly Movement
+       Space = Fly Up
+       Shift = Fly Down
+       CTRL = Minimize GUI
+
+    💖 Special Thanks:
+       • The Scripting Community
+       • All Sakura Lovers
+       • You, for using this script!
+
+    ╔══════════════════════════╗
+    ║  Made with 🌸 by Plalette ║
+    ╚══════════════════════════╝
+]]
+    CreditText.Font = Enum.Font.SourceSans
+    CreditText.TextSize = 11
+    CreditText.TextXAlignment = Enum.TextXAlignment.Left
+    CreditText.TextYAlignment = Enum.TextYAlignment.Top
+    CreditText.TextWrapped = true
+    CreditText.Parent = CreditFrame
+end
+
+BuildCredits(CreditsTab)
 
 -- ==================== FEATURES ====================
 
@@ -337,7 +470,7 @@ end)
 -- ESP (Box + Name)
 task.spawn(function()
     while task.wait(0.03) do
-        ClearDrawings()
+        ClearBoxes()
         if Settings.ESP then
             for _, player in ipairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character then
@@ -349,7 +482,7 @@ task.spawn(function()
                         if onScreen then
                             local height = math.abs(headPos.Y - legPos.Y)
                             local width = height / 2
-                            
+
                             local box = Drawing.new("Square")
                             box.Color = Color3.fromRGB(255, 150, 200)
                             box.Thickness = 1.2
@@ -357,26 +490,16 @@ task.spawn(function()
                             box.Position = Vector2.new(headPos.X - width/2, headPos.Y)
                             box.Filled = false
                             box.Visible = true
-                            table.insert(ESPDrawings, box)
-                            
-                            local name = Drawing.new("Text")
-                            name.Text = player.Name
-                            name.Color = Color3.fromRGB(255, 220, 240)
-                            name.Size = 13
-                            name.Position = Vector2.new(headPos.X, headPos.Y - 18)
-                            name.Center = true
-                            name.Visible = true
-                            table.insert(ESPDrawings, name)
-                            
-                            local dist = math.floor((hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
-                            local distText = Drawing.new("Text")
-                            distText.Text = dist .. "m"
-                            distText.Color = Color3.fromRGB(255, 180, 200)
-                            distText.Size = 11
-                            distText.Position = Vector2.new(headPos.X, headPos.Y - 6)
-                            distText.Center = true
-                            distText.Visible = true
-                            table.insert(ESPDrawings, distText)
+                            table.insert(BoxDrawings, box)
+
+                            local nameTag = Drawing.new("Text")
+                            nameTag.Text = player.Name
+                            nameTag.Color = Color3.fromRGB(255, 220, 240)
+                            nameTag.Size = 13
+                            nameTag.Position = Vector2.new(headPos.X, headPos.Y - 18)
+                            nameTag.Center = true
+                            nameTag.Visible = true
+                            table.insert(BoxDrawings, nameTag)
                         end
                     end
                 end
@@ -385,9 +508,10 @@ task.spawn(function()
     end
 end)
 
--- Tracers
+-- Tracers (Fixed - separate drawing table, no conflict)
 task.spawn(function()
-    while task.wait(0.02) do
+    while task.wait(0.025) do
+        ClearTracers()
         if Settings.Tracers then
             for _, player in ipairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character then
@@ -397,11 +521,11 @@ task.spawn(function()
                         if onScreen then
                             local line = Drawing.new("Line")
                             line.Color = Color3.fromRGB(255, 180, 220)
-                            line.Thickness = 0.6
-                            line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+                            line.Thickness = 0.7
+                            line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                             line.To = Vector2.new(screenPos.X, screenPos.Y)
                             line.Visible = true
-                            table.insert(ESPDrawings, line)
+                            table.insert(TracerDrawings, line)
                         end
                     end
                 end
@@ -430,7 +554,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Fly (WASD + Space/Shift)
+-- Fly (WASD + Space/Shift) with adjustable speed
 task.spawn(function()
     while task.wait() do
         if Settings.Fly and LocalPlayer.Character then
@@ -443,7 +567,8 @@ task.spawn(function()
                 gyro.CFrame = Camera.CFrame
                 vel.Name = "FlyVel"
                 vel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-                
+
+                local speed = Settings.FlySpeed or 50
                 local moveDir = Vector3.zero
                 if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += Camera.CFrame.LookVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= Camera.CFrame.LookVector end
@@ -451,14 +576,13 @@ task.spawn(function()
                 if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += Camera.CFrame.RightVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
                 if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0, 1, 0) end
-                
-                vel.Velocity = moveDir * 50
+
+                vel.Velocity = moveDir * speed
             end
         end
     end
 end)
 
--- Floating sakura petals effect on load
-print("🌸 Sakura One Tap Loaded! 🌸")
-print("💖 Right-Click Aimbot | ESP | Tracers | Fly | Speed | Jump")
-print("🌸 Press CTRL to minimize | Made with love 🌸")
+print("🌸 Sakura One Tap v2 Loaded! 🌸")
+print("💖 Aimbot | ESP | Tracers | Fly | Speed | Jump")
+print("🌸 CTRL to minimize | Credits tab added 🌸")
